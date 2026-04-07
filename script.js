@@ -1,133 +1,93 @@
-  // DOM refs
-        const header = document.getElementById('site-header');
-        const menuToggle = document.getElementById('menuToggle');
-        const mainNav = document.getElementById('mainNav');
-        const fadeEls = document.querySelectorAll('.fade-up');
-        const projects = document.querySelectorAll('.project');
-        const modal = document.getElementById('modal');
-        const modalImg = document.getElementById('modalImg');
-        const modalTitle = document.getElementById('modalTitle');
-        const modalDesc = document.getElementById('modalDesc');
-        const modalClose = document.getElementById('modalClose');
-        const toTop = document.getElementById('toTop');
-        const yearEl = document.getElementById('year');
-        yearEl.textContent = new Date().getFullYear();
+const header = document.getElementById("site-header");
+const menuToggle = document.getElementById("menu-toggle");
+const nav = document.getElementById("main-nav");
+const revealEls = document.querySelectorAll(".reveal");
+const projectsWrap = document.getElementById("projects-wrap");
+const projectsTrack = document.getElementById("projects-track");
+const form = document.getElementById("contact-form");
+const feedback = document.getElementById("form-feedback");
 
-        // Mobile menu toggle
-        menuToggle.addEventListener('click', () => {
-            const open = mainNav.classList.toggle('open');
-            menuToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-        });
+let lastY = window.scrollY;
 
-        // Close menu on nav click (mobile)
-        mainNav.addEventListener('click', (e) => {
-            if(e.target.tagName === 'A' && mainNav.classList.contains('open')){
-                mainNav.classList.remove('open');
-                menuToggle.setAttribute('aria-expanded', 'false');
-            }
-        });
+menuToggle.addEventListener("click", () => {
+  const isOpen = nav.classList.toggle("open");
+  menuToggle.setAttribute("aria-expanded", String(isOpen));
+});
 
-        // Header background on scroll
-        const onScroll = () => {
-            if(window.scrollY > 60) header.classList.add('scrolled'); else header.classList.remove('scrolled');
-            toTop.classList.toggle('hidden', window.scrollY < 400);
-        };
-        window.addEventListener('scroll', onScroll, {passive:true});
-        onScroll();
+nav.addEventListener("click", (event) => {
+  if (event.target.tagName === "A") {
+    nav.classList.remove("open");
+    menuToggle.setAttribute("aria-expanded", "false");
+  }
+});
 
-        // Intersection Observer for fade-in
-        const io = new IntersectionObserver((entries) => {
-            entries.forEach(en => {
-                if(en.isIntersecting) en.target.classList.add('in-view');
-            });
-        }, {threshold:0.12});
-        fadeEls.forEach(el => io.observe(el));
+window.addEventListener(
+  "scroll",
+  () => {
+    const y = window.scrollY;
 
-        // Smooth scroll offset adjustment for fixed header
-        document.querySelectorAll('a[href^="#"]').forEach(a=>{
-            a.addEventListener('click', (e)=>{
-                const target = document.querySelector(a.getAttribute('href'));
-                if(target){
-                    e.preventDefault();
-                    const headerHeight = header.offsetHeight;
-                    const top = target.getBoundingClientRect().top + window.scrollY - headerHeight - 12;
-                    window.scrollTo({top, behavior:'smooth'});
-                }
-            });
-        });
+    header.classList.toggle("scrolled", y > 18);
+    if (y > 140 && y > lastY + 4) {
+      header.classList.add("hidden");
+    } else {
+      header.classList.remove("hidden");
+    }
+    lastY = y;
 
-        // Projects modal (lightbox)
-        function openModal(src, title, desc){
-            modalImg.src = src;
-            modalImg.alt = title;
-            modalTitle.textContent = title;
-            modalDesc.textContent = desc;
-            modal.classList.add('open');
-            modal.setAttribute('aria-hidden', 'false');
-            // focus management
-            modalClose.focus();
-        }
-        function closeModal(){
-            modal.classList.remove('open');
-            modal.setAttribute('aria-hidden', 'true');
-        }
-        projects.forEach(p=>{
-            p.addEventListener('click', ()=> openModal(p.dataset.src, p.dataset.title, p.dataset.desc));
-            p.addEventListener('keypress', (e)=>{ if(e.key === 'Enter') openModal(p.dataset.src, p.dataset.title, p.dataset.desc); });
-        });
-        modalClose.addEventListener('click', closeModal);
-        modal.addEventListener('click', (e)=>{ if(e.target === modal) closeModal(); });
-        document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeModal(); });
+    updateProjectsTrack();
+  },
+  { passive: true }
+);
 
-        // Contact form validation & submit (client-side)
-        const form = document.getElementById('contactForm');
-        const feedback = document.getElementById('formFeedback');
-        form.addEventListener('submit', (e)=>{
-            e.preventDefault();
-            feedback.textContent = '';
-            const name = form.name.value.trim();
-            const email = form.email.value.trim();
-            const message = form.message.value.trim();
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if(!name || !email || !message){
-                feedback.textContent = 'Please fill out all required fields.';
-                return;
-            }
-            if(!emailRegex.test(email)){
-                feedback.textContent = 'Please provide a valid email address.';
-                form.email.focus();
-                return;
-            }
-            // Simulate sending
-            const submitBtn = form.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Sending...';
-            setTimeout(()=>{
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Send Message';
-                feedback.textContent = 'Message sent successfully! We will reply within 2 business days.';
-                form.reset();
-            }, 900);
-        });
+const observer = new IntersectionObserver(
+  (entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("in-view");
+      }
+    });
+  },
+  { threshold: 0.2 }
+);
 
-        // Scroll to top
-        toTop.addEventListener('click', ()=> window.scrollTo({top:0, behavior:'smooth'}));
+revealEls.forEach((el) => observer.observe(el));
 
-        // Accessibility: ensure focus outlines visible for keyboard users (basic approach)
-        (function(){
-            function handleFirstTab(e){
-                if(e.key === 'Tab'){
-                    document.documentElement.classList.add('show-focus');
-                    window.removeEventListener('keydown', handleFirstTab);
-                }
-            }
-            window.addEventListener('keydown', handleFirstTab);
-        })();
+function updateProjectsTrack() {
+  if (!projectsWrap || !projectsTrack) return;
 
-        // Lazy load images fallback (simple)
-        if('loading' in HTMLImageElement.prototype === false){
-            document.querySelectorAll('img[loading="lazy"]').forEach(img=>{
-                const src = img.dataset.src || img.src;
-                if(src) img.src = src;
-            });
-        }
+  const rect = projectsWrap.getBoundingClientRect();
+  const maxScroll = projectsWrap.offsetHeight - window.innerHeight;
+  if (maxScroll <= 0) return;
+
+  const scrolled = Math.min(Math.max(-rect.top, 0), maxScroll);
+  const progress = scrolled / maxScroll;
+  const maxMove = Math.max(projectsTrack.scrollWidth - window.innerWidth, 0);
+  const moveX = -maxMove * progress;
+
+  projectsTrack.style.transform = `translate3d(${moveX}px, 0, 0)`;
+}
+
+window.addEventListener("resize", updateProjectsTrack);
+updateProjectsTrack();
+
+form.addEventListener("submit", (event) => {
+  event.preventDefault();
+
+  const nome = form.nome.value.trim();
+  const email = form.email.value.trim();
+  const mensagem = form.mensagem.value.trim();
+  const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  if (!nome || !email || !mensagem) {
+    feedback.textContent = "Preencha todos os campos obrigatórios.";
+    return;
+  }
+
+  if (!validEmail) {
+    feedback.textContent = "Informe um e-mail válido.";
+    return;
+  }
+
+  feedback.textContent = "Mensagem enviada com sucesso. Retornaremos em breve.";
+  form.reset();
+});
